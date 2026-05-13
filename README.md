@@ -1,54 +1,66 @@
-# React + TypeScript + Vite
+# AI Chat Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript frontend for the AI Chat application.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** + **TypeScript 5**
+- **Vite 6** — dev server and bundler
+- **React Router 7** — client-side routing
+- **Axios** — HTTP client
+- **STOMP.js + SockJS** — WebSocket messaging
+- **CSS custom properties** — design tokens, no UI framework
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Node.js 18+
+- The [AI Chat API](../ai-chat-api) running on `http://localhost:8080`
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Getting Started
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app starts on **http://localhost:5173**.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Project Structure
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
 ```
+src/
+├── api/
+│   └── axios.ts              # Axios instance (base URL, auth header)
+├── components/
+│   ├── Sidebar.tsx           # Channel list, user search, group creation
+│   └── ProtectedRoute.tsx    # Redirects unauthenticated users to /login
+├── context/
+│   └── AuthContext.tsx       # JWT + user state, login/logout
+├── pages/
+│   ├── LoginPage.tsx
+│   ├── RegisterPage.tsx
+│   └── ChatPage.tsx          # Main chat view
+├── services/
+│   ├── chatService.ts        # REST calls (channels, messages, users)
+│   └── websocketService.ts   # STOMP WebSocket connection
+└── types/
+    └── index.ts              # Shared TypeScript interfaces
+```
+
+## Features
+
+- **Register / Login** with JWT — token persisted in `localStorage`
+- **Channel list** — only shows channels the logged-in user belongs to
+- **User search** — search all users from the sidebar; clicking one opens a direct message channel (creates it if it doesn't exist yet)
+- **Create group channel** — "+" button in the sidebar opens an inline form with channel name, optional description, and a member picker
+- **Real-time messaging** via WebSocket (STOMP over SockJS)
+- **AI responses** — messages from the AI assistant are visually distinguished
+
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the development server |
+| `npm run build` | Type-check and build for production |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint |
