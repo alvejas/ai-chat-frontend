@@ -1,9 +1,14 @@
 import api from '../api/axios';
-import type { Channel, Message } from '../types';
+import type { Channel, Message, UserSummary } from '../types';
 
 export const chatService = {
   getChannels: async (): Promise<Channel[]> => {
     const response = await api.get('/channels');
+    return response.data;
+  },
+
+  getUsers: async (): Promise<UserSummary[]> => {
+    const response = await api.get('/users');
     return response.data;
   },
 
@@ -17,8 +22,13 @@ export const chatService = {
     return response.data;
   },
 
-  createChannel: async (name: string, description: string, isPrivate: boolean): Promise<Channel> => {
-    const response = await api.post('/channels', { name, description, isPrivate });
+  createChannel: async (params: {
+    name: string;
+    creatorUsername: string;
+    receiverUsername: string;
+    description?: string;
+  }): Promise<Channel> => {
+    const response = await api.post('/channels', params);
     return response.data;
-  }
+  },
 };

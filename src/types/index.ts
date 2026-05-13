@@ -4,6 +4,12 @@ export interface User {
   avatarUrl?: string;
 }
 
+export interface UserSummary {
+  username: string;
+  email: string;
+  avatarUrl?: string;
+}
+
 export interface AuthResponse {
   token: string;
 }
@@ -11,7 +17,7 @@ export interface AuthResponse {
 export interface Channel {
   name: string;
   description?: string;
-  isPrivate: boolean;
+  memberIds: number[];
   createdAt: string;
 }
 
