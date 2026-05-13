@@ -75,7 +75,8 @@ export const ChatPage: React.FC = () => {
     if (existing) { setActiveChannel(dmName); return; }
     try {
       const channel = await chatService.createChannel({ name: dmName, creatorUsername: user.username, receiverUsernames: [receiverUsername] });
-      setChannels((prev) => [...prev, channel]);
+      channels.push(channel);
+      setChannels(channels);
       setActiveChannel(channel.name);
     } catch (err) {
       console.error('Failed to create DM channel', err);
@@ -266,7 +267,7 @@ export const ChatPage: React.FC = () => {
                       </div>
                       <div className="msg-bubble-stack">
                         {group.messages.map((msg, mi) => (
-                          <div key={mi} className="msg-bubble">{msg.content}</div>
+                          <div key={mi} className="msg-bubble" dangerouslySetInnerHTML={{ __html: msg.content }} />
                         ))}
                       </div>
                     </div>
