@@ -25,7 +25,7 @@ export const chatService = {
   createChannel: async (params: {
     name: string;
     creatorUsername: string;
-    receiverUsername: string;
+    receiverUsernames: string[];
     description?: string;
   }): Promise<Channel> => {
     const response = await api.post('/channels', params);

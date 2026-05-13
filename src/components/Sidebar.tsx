@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Channel, UserSummary, User } from '../types';
+import type { Channel, MemberSummary, UserSummary, User } from '../types';
 
 interface SidebarProps {
   channels: Channel[];
@@ -7,7 +7,7 @@ interface SidebarProps {
   activeChannel: string | null;
   onChannelSelect: (name: string) => void;
   onUserSelect: (username: string) => void;
-  onCreateGroup: (name: string, receiverUsername: string, description?: string) => void;
+  onCreateGroup: (name: string, receiverUsernames: string[], description?: string) => void;
   user: User | null;
   onLogout: () => void;
 }
@@ -30,6 +30,32 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+function ChannelAvatars({ members, currentUsername }: { members: MemberSummary[]; currentUsername?: string }) {
+  const displayed = members.filter((m) => m.username !== currentUsername).slice(0, 3);
+  return (
+    <div className="channel-avatars">
+      {displayed.map((member, i) => (
+        <div
+          key={member.username}
+          className="channel-avatar"
+          style={{
+            zIndex: displayed.length - i,
+            marginLeft: i > 0 ? '-5px' : '0',
+          }}
+        >
+          {member.avatarUrl ? (
+            <img src={member.avatarUrl} alt={member.username} />
+          ) : (
+            <span style={{ background: getAvatarColor(member.username) }}>
+              {getInitials(member.username)}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({
   channels, allUsers, activeChannel,
   onChannelSelect, onUserSelect, onCreateGroup,
@@ -40,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [groupName, setGroupName] = useState('');
   const [groupDesc, setGroupDesc] = useState('');
   const [memberSearch, setMemberSearch] = useState('');
-  const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
   const userResults = search.trim()
     ? allUsers.filter(
@@ -50,23 +76,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )
     : [];
 
-  const memberResults =
-    memberSearch.trim() && !selectedMember
-      ? allUsers.filter(
-          (u) =>
-            u.username !== user?.username &&
-            u.username.toLowerCase().includes(memberSearch.toLowerCase())
-        )
-      : [];
+  const memberResults = memberSearch.trim()
+    ? allUsers.filter(
+        (u) =>
+          u.username !== user?.username &&
+          !selectedMembers.includes(u.username) &&
+          u.username.toLowerCase().includes(memberSearch.toLowerCase())
+      )
+    : [];
 
   const handleGroupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!groupName.trim() || !selectedMember) return;
-    onCreateGroup(groupName.trim(), selectedMember, groupDesc.trim() || undefined);
+    if (!groupName.trim() || selectedMembers.length === 0) return;
+    onCreateGroup(groupName.trim(), selectedMembers, groupDesc.trim() || undefined);
     setGroupName('');
     setGroupDesc('');
     setMemberSearch('');
-    setSelectedMember(null);
+    setSelectedMembers([]);
     setShowGroup(false);
   };
 
@@ -75,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setGroupName('');
     setGroupDesc('');
     setMemberSearch('');
-    setSelectedMember(null);
+    setSelectedMembers([]);
   };
 
   return (
@@ -167,54 +193,51 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onChange={(e) => setGroupDesc(e.target.value)}
             />
             <div className="sidebar-member-picker">
-              {selectedMember ? (
-                <div className="member-chip">
-                  <div
-                    className="member-chip-avatar"
-                    style={{ background: getAvatarColor(selectedMember) }}
-                  >
-                    {getInitials(selectedMember)}
-                  </div>
-                  <span>{selectedMember}</span>
-                  <button
-                    type="button"
-                    className="member-chip-remove"
-                    onClick={() => setSelectedMember(null)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <div style={{ position: 'relative' }}>
-                  <input
-                    placeholder="Add member *"
-                    value={memberSearch}
-                    onChange={(e) => setMemberSearch(e.target.value)}
-                  />
-                  {memberResults.length > 0 && (
-                    <div className="user-search-dropdown">
-                      {memberResults.map((u) => (
-                        <div
-                          key={u.username}
-                          className="user-search-item"
-                          onMouseDown={() => {
-                            setSelectedMember(u.username);
-                            setMemberSearch('');
-                          }}
-                        >
-                          <div
-                            className="user-search-avatar"
-                            style={{ background: getAvatarColor(u.username) }}
-                          >
-                            {getInitials(u.username)}
-                          </div>
-                          <span>{u.username}</span>
-                        </div>
-                      ))}
+              {selectedMembers.length > 0 && (
+                <div className="member-chips">
+                  {selectedMembers.map((username) => (
+                    <div key={username} className="member-chip">
+                      <div className="member-chip-avatar" style={{ background: getAvatarColor(username) }}>
+                        {getInitials(username)}
+                      </div>
+                      <span>{username}</span>
+                      <button
+                        type="button"
+                        className="member-chip-remove"
+                        onClick={() => setSelectedMembers((prev) => prev.filter((m) => m !== username))}
+                      >
+                        ×
+                      </button>
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
+              <div style={{ position: 'relative' }}>
+                <input
+                  placeholder={selectedMembers.length === 0 ? 'Add members *' : 'Add more members...'}
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                />
+                {memberResults.length > 0 && (
+                  <div className="user-search-dropdown">
+                    {memberResults.map((u) => (
+                      <div
+                        key={u.username}
+                        className="user-search-item"
+                        onMouseDown={() => {
+                          setSelectedMembers((prev) => [...prev, u.username]);
+                          setMemberSearch('');
+                        }}
+                      >
+                        <div className="user-search-avatar" style={{ background: getAvatarColor(u.username) }}>
+                          {getInitials(u.username)}
+                        </div>
+                        <span>{u.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="sidebar-create-group-actions">
               <button type="button" className="btn-cancel" onClick={cancelGroup}>
@@ -223,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="submit"
                 className="btn-create"
-                disabled={!groupName.trim() || !selectedMember}
+                disabled={!groupName.trim() || selectedMembers.length === 0}
               >
                 Create
               </button>
@@ -237,7 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`channel-item ${activeChannel === channel.name ? 'active' : ''}`}
             onClick={() => onChannelSelect(channel.name)}
           >
-            <span className="channel-hash">#</span>
+            <ChannelAvatars members={channel.members ?? []} currentUsername={user?.username} />
             <span className="channel-name">{channel.name}</span>
           </div>
         ))}

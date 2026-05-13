@@ -1,0 +1,94 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate diff
+        run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+
+      - name: Review with GitHub Models
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys, urllib.request, urllib.error
+
+          with open('pr.diff', 'r', errors='replace') as f:
+              diff = f.read(14000)
+
+          if not diff.strip():
+              print("Empty diff, skipping.")
+              sys.exit(0)
+
+          payload = {
+              "model": "Meta-Llama-3.3-70B-Instruct",
+              "messages": [
+                  {
+                      "role": "system",
+                      "content": (
+                          "You are a senior React and TypeScript engineer performing a thorough code review. "
+                          "Analyse the PR diff and provide concise, actionable feedback. "
+                          "Cover: correctness, type safety, React best practices (hooks, re-renders, side effects), "
+                          "accessibility, performance, and security (XSS, unsafe props). "
+                          "Be specific and reference file names where relevant. "
+                          "Format your response in markdown with clear sections. "
+                          "If the change looks good overall, say so briefly."
+                      )
+                  },
+                  {
+                      "role": "user",
+                      "content": f"Please review this pull request:\n\n```diff\n{diff}\n```"
+                  }
+              ],
+              "max_tokens": 1500,
+              "temperature": 0.3
+          }
+
+          req = urllib.request.Request(
+              "https://models.inference.ai.azure.com/chat/completions",
+              data=json.dumps(payload).encode(),
+              headers={
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "Content-Type": "application/json"
+              }
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  data = json.loads(resp.read())
+          except urllib.error.HTTPError as e:
+              print(f"GitHub Models error {e.code}: {e.read().decode()}", file=sys.stderr)
+              sys.exit(1)
+
+          review = data['choices'][0]['message']['content']
+
+          with open('review.md', 'w') as f:
+              f.write("## 🤖 AI Code Review\n\n")
+              f.write(review)
+              f.write("\n\n---\n*Powered by Llama 3.3 70B via [GitHub Models](https://github.com/marketplace/models)*\n")
+          EOF
+
+      - name: Post review comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f review.md ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
+          fi

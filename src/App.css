@@ -622,11 +622,37 @@
   box-shadow: var(--shadow-sm);
 }
 
-.chat-header-hash {
-  font-size: 1.1rem;
-  color: var(--text-muted);
-  font-weight: 400;
+.header-channel-avatars {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+}
+
+.header-channel-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--header-bg);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.header-channel-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.header-channel-avatar span {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: white;
 }
 
 .chat-header-name {
@@ -634,6 +660,7 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+  margin-left: 0.375rem;
 }
 
 .chat-header-spacer {
@@ -665,9 +692,212 @@
   color: var(--text-secondary);
 }
 
+.header-action-btn.active {
+  background: #ede9fe;
+  color: var(--accent);
+}
+
 .header-action-btn svg {
   width: 17px;
   height: 17px;
+}
+
+/* ── Chat Body ────────────────────────────────────────────── */
+
+.chat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* ── Side Panel ───────────────────────────────────────────── */
+
+.side-panel {
+  width: 280px;
+  min-width: 280px;
+  background: var(--header-bg);
+  border-left: 1px solid var(--header-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.side-panel-header {
+  height: 54px;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--header-border);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.side-panel-close {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.side-panel-close:hover {
+  background: var(--main-bg);
+  color: var(--text-secondary);
+}
+
+.side-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.625rem;
+}
+
+.side-panel-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.side-panel-body::-webkit-scrollbar-thumb {
+  background: #d1d5ee;
+  border-radius: 2px;
+}
+
+.side-panel-hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Members Panel ────────────────────────────────────────── */
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.375rem;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.member-row:hover {
+  background: var(--main-bg);
+}
+
+.member-row-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.member-row-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-row-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Search Panel ─────────────────────────────────────────── */
+
+.side-panel-search {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--header-border);
+  flex-shrink: 0;
+}
+
+.side-panel-search input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid #e2e4f0;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-family: var(--font);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.side-panel-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.side-panel-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-result {
+  padding: 0.625rem 0.375rem;
+  border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--header-border);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.search-result:last-child {
+  border-bottom: none;
+}
+
+.search-result:hover {
+  background: var(--main-bg);
+}
+
+.search-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.search-result-sender {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.search-result-time {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.search-result p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 /* ── Message List ─────────────────────────────────────────── */
@@ -1043,6 +1273,50 @@
   padding: 0 0.25rem;
 }
 
+/* ── Channel Avatars ──────────────────────────────────────── */
+
+.channel-avatars {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.channel-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sidebar-bg);
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: border-color var(--transition);
+}
+
+.channel-item:hover .channel-avatar {
+  border-color: var(--sidebar-hover);
+}
+
+.channel-item.active .channel-avatar {
+  border-color: var(--sidebar-active);
+}
+
+.channel-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.channel-avatar span {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.4rem;
+  font-weight: 700;
+  color: white;
+}
+
 /* ── User Search Dropdown ─────────────────────────────────── */
 
 .user-search-dropdown {
@@ -1189,6 +1463,13 @@
 }
 
 /* ── Member Chip ──────────────────────────────────────────── */
+
+.member-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
 
 .member-chip {
   display: flex;

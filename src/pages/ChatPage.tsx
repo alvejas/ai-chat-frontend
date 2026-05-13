@@ -50,6 +50,9 @@ export const ChatPage: React.FC = () => {
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [showMembers, setShowMembers] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const wsServiceRef = useRef<WebSocketService | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,20 +62,19 @@ export const ChatPage: React.FC = () => {
     chatService.getUsers().then(setAllUsers);
   }, []);
 
+  useEffect(() => {
+    setShowMembers(false);
+    setShowSearch(false);
+    setSearchQuery('');
+  }, [activeChannel]);
+
   const handleUserSelect = async (receiverUsername: string) => {
     if (!user) return;
     const dmName = [user.username, receiverUsername].sort().join('-');
     const existing = channels.find((c) => c.name === dmName);
-    if (existing) {
-      setActiveChannel(dmName);
-      return;
-    }
+    if (existing) { setActiveChannel(dmName); return; }
     try {
-      const channel = await chatService.createChannel({
-        name: dmName,
-        creatorUsername: user.username,
-        receiverUsername,
-      });
+      const channel = await chatService.createChannel({ name: dmName, creatorUsername: user.username, receiverUsernames: [receiverUsername] });
       setChannels((prev) => [...prev, channel]);
       setActiveChannel(channel.name);
     } catch (err) {
@@ -80,15 +82,10 @@ export const ChatPage: React.FC = () => {
     }
   };
 
-  const handleCreateGroup = async (name: string, receiverUsername: string, description?: string) => {
+  const handleCreateGroup = async (name: string, receiverUsernames: string[], description?: string) => {
     if (!user) return;
     try {
-      const channel = await chatService.createChannel({
-        name,
-        creatorUsername: user.username,
-        receiverUsername,
-        description,
-      });
+      const channel = await chatService.createChannel({ name, creatorUsername: user.username, receiverUsernames, description });
       setChannels((prev) => [...prev, channel]);
       setActiveChannel(channel.name);
     } catch (err) {
@@ -129,10 +126,7 @@ export const ChatPage: React.FC = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -141,40 +135,40 @@ export const ChatPage: React.FC = () => {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   };
 
-  const messageGroups = useMemo(
-    () => groupMessages(messages, user?.username),
-    [messages, user?.username]
+  const messageGroups = useMemo(() => groupMessages(messages, user?.username), [messages, user?.username]);
+
+  const activeChannelData = useMemo(
+    () => channels.find((c) => c.name === activeChannel) ?? null,
+    [channels, activeChannel]
   );
+
+  const filteredMessages = useMemo(
+    () => searchQuery.trim()
+      ? messages.filter((m) => m.content.toLowerCase().includes(searchQuery.toLowerCase()))
+      : [],
+    [messages, searchQuery]
+  );
+
+  const toggleMembers = () => { setShowMembers((v) => !v); setShowSearch(false); };
+  const toggleSearch  = () => { setShowSearch((v) => !v); setShowMembers(false); setSearchQuery(''); };
 
   return (
     <div className="chat-app">
-      {/* Nav Rail */}
       <nav className="nav-rail">
         <div className="nav-logo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-
         <button className="nav-btn active" title="Chat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-
         <div className="nav-spacer" />
-
         <button className="nav-btn" title="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
@@ -195,96 +189,162 @@ export const ChatPage: React.FC = () => {
         {activeChannel ? (
           <>
             <header className="chat-header">
-              <span className="chat-header-hash">#</span>
+              <div className="header-channel-avatars">
+                {(activeChannelData?.members ?? []).filter((m) => m.username !== user?.username).slice(0, 3).map((member, i) => (
+                  <div
+                    key={member.username}
+                    className="header-channel-avatar"
+                    style={{ zIndex: 3 - i, marginLeft: i > 0 ? '-7px' : '0' }}
+                  >
+                    {member.avatarUrl
+                      ? <img src={member.avatarUrl} alt={member.username} />
+                      : <span style={{ background: getAvatarColor(member.username) }}>{getInitials(member.username)}</span>
+                    }
+                  </div>
+                ))}
+              </div>
               <span className="chat-header-name">{activeChannel}</span>
               <div className="chat-header-spacer" />
               <div className="chat-header-actions">
-                <button className="header-action-btn" title="Search in channel">
+                <button
+                  className={`header-action-btn${showSearch ? ' active' : ''}`}
+                  title="Search messages"
+                  onClick={toggleSearch}
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                    <path
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
-                <button className="header-action-btn" title="Members">
+                <button
+                  className={`header-action-btn${showMembers ? ' active' : ''}`}
+                  title="Members"
+                  onClick={toggleMembers}
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                    <path
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
               </div>
             </header>
 
-            <div className="message-list">
-              {messageGroups.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+            <div className="chat-body">
+              <div className="message-list">
+                {messageGroups.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                        <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <h3>No messages yet</h3>
+                    <p>Be the first to say something in #{activeChannel}</p>
                   </div>
-                  <h3>No messages yet</h3>
-                  <p>Be the first to say something in #{activeChannel}</p>
-                </div>
-              ) : (
-                messageGroups.map((group, gi) => (
-                  <div
-                    key={gi}
-                    className={[
-                      'message-group',
-                      group.isOwn ? 'own' : '',
-                      group.isAiResponse ? 'ai' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <div className="message-group-header">
-                      {!group.isOwn && (
-                        <div
-                          className={`msg-avatar${group.isAiResponse ? ' ai-avatar' : ''}`}
-                          style={
-                            !group.isAiResponse
-                              ? { background: getAvatarColor(group.senderName) }
-                              : undefined
-                          }
-                        >
-                          {group.isAiResponse ? '✦' : getInitials(group.senderName)}
+                ) : (
+                  messageGroups.map((group, gi) => (
+                    <div
+                      key={gi}
+                      className={['message-group', group.isOwn ? 'own' : '', group.isAiResponse ? 'ai' : ''].filter(Boolean).join(' ')}
+                    >
+                      <div className="message-group-header">
+                        {!group.isOwn && (
+                          <div
+                            className={`msg-avatar${group.isAiResponse ? ' ai-avatar' : ''}`}
+                            style={!group.isAiResponse ? { background: getAvatarColor(group.senderName) } : undefined}
+                          >
+                            {group.isAiResponse ? '✦' : getInitials(group.senderName)}
+                          </div>
+                        )}
+                        <div className="msg-sender-info">
+                          <span className="msg-sender-name">
+                            {group.isOwn ? 'You' : group.isAiResponse ? 'AI Assistant' : group.senderName}
+                          </span>
+                          {group.isAiResponse && <span className="ai-label">AI</span>}
                         </div>
-                      )}
-                      <div className="msg-sender-info">
-                        <span className="msg-sender-name">
-                          {group.isOwn ? 'You' : group.isAiResponse ? 'AI Assistant' : group.senderName}
+                        <span className="msg-timestamp">
+                          {new Date(group.messages[0].createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        {group.isAiResponse && <span className="ai-label">AI</span>}
                       </div>
-                      <span className="msg-timestamp">
-                        {new Date(group.messages[0].createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
+                      <div className="msg-bubble-stack">
+                        {group.messages.map((msg, mi) => (
+                          <div key={mi} className="msg-bubble">{msg.content}</div>
+                        ))}
+                      </div>
                     </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
 
-                    <div className="msg-bubble-stack">
-                      {group.messages.map((msg, mi) => (
-                        <div key={mi} className="msg-bubble">
-                          {msg.content}
-                        </div>
-                      ))}
-                    </div>
+              {/* Members panel */}
+              {showMembers && (
+                <div className="side-panel">
+                  <div className="side-panel-header">
+                    <span>Members · {activeChannelData?.members.length ?? 0}</span>
+                    <button className="side-panel-close" onClick={() => setShowMembers(false)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" />
+                      </svg>
+                    </button>
                   </div>
-                ))
+                  <div className="side-panel-body">
+                    {(activeChannelData?.members ?? []).map((member) => (
+                      <div key={member.username} className="member-row">
+                        <div
+                          className="member-row-avatar"
+                          style={!member.avatarUrl ? { background: getAvatarColor(member.username) } : {}}
+                        >
+                          {member.avatarUrl
+                            ? <img src={member.avatarUrl} alt={member.username} />
+                            : getInitials(member.username)
+                          }
+                        </div>
+                        <span className="member-row-name">{member.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-              <div ref={messagesEndRef} />
+
+              {/* Search panel */}
+              {showSearch && (
+                <div className="side-panel">
+                  <div className="side-panel-header">
+                    <span>Search Messages</span>
+                    <button className="side-panel-close" onClick={toggleSearch}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="side-panel-search">
+                    <input
+                      autoFocus
+                      placeholder="Search in this channel..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="side-panel-body">
+                    {searchQuery.trim() === '' ? (
+                      <p className="side-panel-hint">Type to search messages in this channel</p>
+                    ) : filteredMessages.length === 0 ? (
+                      <p className="side-panel-hint">No messages match "{searchQuery}"</p>
+                    ) : (
+                      filteredMessages.map((msg, i) => (
+                        <div key={i} className="search-result">
+                          <div className="search-result-meta">
+                            <span className="search-result-sender">{msg.senderName}</span>
+                            <span className="search-result-time">
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p>{msg.content}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="message-composer">
@@ -301,20 +361,12 @@ export const ChatPage: React.FC = () => {
                 <div className="composer-actions">
                   <button className="composer-action-btn" type="button" title="Add emoji">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path
-                        d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
                   <button className="composer-action-btn" type="button" title="Attach file">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path
-                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
                   <button
@@ -337,11 +389,7 @@ export const ChatPage: React.FC = () => {
           <div className="no-channel-state">
             <div className="no-channel-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path
-                  d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <p>Select a channel to start chatting</p>

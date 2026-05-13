@@ -14,10 +14,15 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface MemberSummary {
+  username: string;
+  avatarUrl?: string;
+}
+
 export interface Channel {
   name: string;
   description?: string;
-  memberIds: number[];
+  members: MemberSummary[];
   createdAt: string;
 }
 
